@@ -54,7 +54,7 @@ public class VolleyAPI {
                                         types.add(typesArray.getString(j));
                                     }
                                 }
-                                if(jsonObject.has("place_id") && !types.contains("political") && placeProvider.getCount()==0) {
+                                if(jsonObject.has("place_id") && placeProvider.getCount()==0 && !types.contains("political") && !types.contains("route")) {
                                     placeProvider.add(jsonObject.getString("place_id"));
                                 }
                                 placeProvider.notifyDataSetChanged();

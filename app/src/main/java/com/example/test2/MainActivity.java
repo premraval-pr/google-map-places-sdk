@@ -188,11 +188,12 @@ public class MainActivity extends AppCompatActivity implements MapInterface {
         else {
             mapsFragment.getgMap().clear();
             Fragment tempFrag = getSupportFragmentManager().findFragmentByTag("INFO_TAG");
-            assert tempFrag != null;
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .remove(tempFrag)
-                    .commit();
+            if(tempFrag!=null) {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .remove(tempFrag)
+                        .commit();
+            }
         }
     }
 
