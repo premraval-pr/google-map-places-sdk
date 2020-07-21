@@ -31,6 +31,8 @@ public class InfoFragment extends Fragment {
     PlacesClient placesClient;
     ImageView image;
 
+    public static String TEXT_TO_SEARCH = "";
+
     public InfoFragment(Place place){
         this.fetchedPlace = place;
     }
@@ -52,6 +54,7 @@ public class InfoFragment extends Fragment {
         image.setClipToOutline(true);
 
         title.setText(fetchedPlace.getName());
+        TEXT_TO_SEARCH = Objects.requireNonNull(fetchedPlace.getName()).substring(0,fetchedPlace.getName().length()/2);
         phone.setText(fetchedPlace.getPhoneNumber());
         address.setText(fetchedPlace.getAddress());
 

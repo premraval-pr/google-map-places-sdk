@@ -87,4 +87,10 @@ public class MapsFragment extends Fragment {
         gMap.addMarker(new MarkerOptions().position(Objects.requireNonNull(place.getLatLng())).title(place.getName())).showInfoWindow();
         gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(),16));
     }
+
+    public void addAll(){
+        for(Place place: PlaceContent.ITEMS){
+            gMap.addMarker(new MarkerOptions().position(Objects.requireNonNull(place.getLatLng())).title(place.getName()));
+        }
+    }
 }

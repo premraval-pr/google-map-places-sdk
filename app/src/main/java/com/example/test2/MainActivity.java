@@ -1,6 +1,7 @@
 package com.example.test2;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -11,47 +12,69 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.model.RectangularBounds;
+import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
 import com.google.android.libraries.places.api.net.FetchPlaceResponse;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.maps.android.SphericalUtil;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity implements MapInterface {
+public class MainActivity extends AppCompatActivity implements MapInterface,ListInterface, ListFragInterface {
 
+    private static final int AUTOCOMPLETE_CODE = 999;
     MapsFragment mapsFragment;
     private boolean isLocationPermissionGranted;
     FusedLocationProviderClient flp;
     VolleyAPI volleyAPI;
     PlaceProvider placeProvider;
     PlacesClient placesClient;
+    FloatingActionButton fab_info_close,fab_info_list;
+    FrameLayout list_layout;
+    ItemFragment itemFragment;
+    boolean doubleBackToExitPressedOnce = false;
+    MyItemRecyclerViewAdapter myItemRecyclerViewAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         placeProvider = new PlaceProvider(this,android.R.layout.simple_dropdown_item_1line);
-        volleyAPI = new VolleyAPI(this,placeProvider,this);
+        volleyAPI = new VolleyAPI(this,placeProvider,this,this);
         mapsFragment = new MapsFragment(this,placeProvider);
         Places.initialize(getApplicationContext(),VolleyAPI.API_KEY);
         placesClient = Places.createClient(this);
-
+        fab_info_close = findViewById(R.id.fab_info_close);
+        fab_info_list = findViewById(R.id.fab_info_list);
+        list_layout = findViewById(R.id.host_list_frag);
+        myItemRecyclerViewAdapter = new MyItemRecyclerViewAdapter(PlaceContent.ITEMS,this);
+        itemFragment = new ItemFragment(this,myItemRecyclerViewAdapter);
 
         getSupportFragmentManager()
                 .beginTransaction()
@@ -176,6 +199,7 @@ public class MainActivity extends AppCompatActivity implements MapInterface {
                                     .beginTransaction()
                                     .replace(R.id.host_info_frag,new InfoFragment(fetchedPlace),"INFO_TAG")
                                     .commit();
+                            fab_info_close.setVisibility(View.VISIBLE);
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -194,11 +218,145 @@ public class MainActivity extends AppCompatActivity implements MapInterface {
                         .remove(tempFrag)
                         .commit();
             }
+            fab_info_close.setVisibility(View.GONE);
+            fab_info_list.setVisibility(View.GONE);
         }
     }
 
     @Override
     public void mapClicked(LatLng latLng) {
         volleyAPI.getPlaces(latLng.latitude,latLng.longitude);
+    }
+
+    public void startAutoCompleteActivity(View view) {
+        LatLng center = mapsFragment.getgMap().getCameraPosition().target;
+        double radius = mapsFragment.getgMap().getCameraPosition().zoom;
+        Intent intent = new Autocomplete.IntentBuilder(
+                AutocompleteActivityMode.OVERLAY,
+                Arrays.asList(Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.LAT_LNG,
+                        Place.Field.PHONE_NUMBER,
+                        Place.Field.RATING,
+                        Place.Field.WEBSITE_URI,
+                        Place.Field.PHOTO_METADATAS))
+                .setTypeFilter(TypeFilter.ESTABLISHMENT)
+                .setCountries(Arrays.asList("CA","US"))
+                .setLocationBias(RectangularBounds.newInstance(toBounds(center,radius)))
+                .build(this);
+
+        startActivityForResult(intent,AUTOCOMPLETE_CODE);
+    }
+
+    public LatLngBounds toBounds(LatLng center, double radiusInMeters){
+        double distanceFromCenterToCorner = radiusInMeters * Math.sqrt(2.0);
+        LatLng southwestCorner = SphericalUtil.computeOffset(center,distanceFromCenterToCorner,225);
+        LatLng northeastCorner = SphericalUtil.computeOffset(center,distanceFromCenterToCorner,45);
+        return new LatLngBounds(southwestCorner,northeastCorner);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == AUTOCOMPLETE_CODE) {
+            if (resultCode == RESULT_OK) {
+                Place place = null;
+                if (data != null) {
+                    place = Autocomplete.getPlaceFromIntent(data);
+                    mapsFragment.addMarkers(place);
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.host_info_frag,new InfoFragment(place),"INFO_TAG")
+                            .commit();
+                    fab_info_close.setVisibility(View.VISIBLE);
+                    fab_info_list.setVisibility(View.VISIBLE);
+                }
+                Log.d("SUCCESS", "onPlaceSelected: " + place);
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+                Status status = null;
+                if (data != null) {
+                    status = Autocomplete.getStatusFromIntent(data);
+                }
+                Log.d("ERROR", "onError: " + status);
+            }
+        }
+    }
+
+    public void closeInfo(View view) {
+        mapsFragment.getgMap().clear();
+        Fragment tempFrag = getSupportFragmentManager().findFragmentByTag("INFO_TAG");
+        if(tempFrag!=null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .remove(tempFrag)
+                    .commit();
+        }
+        fab_info_close.setVisibility(View.GONE);
+        fab_info_list.setVisibility(View.GONE);
+    }
+
+    public void showList(View view) {
+        LatLng tempLatLng = mapsFragment.getgMap().getCameraPosition().target;
+        volleyAPI.getPlacesBySearch(tempLatLng.latitude,tempLatLng.longitude,InfoFragment.TEXT_TO_SEARCH,placesClient);
+    }
+
+    @Override
+    public void closeClicked() {
+        getSupportFragmentManager()
+                    .beginTransaction()
+                    .remove(itemFragment)
+                    .commit();
+        PlaceContent.ITEMS.clear();
+        list_layout.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void listFilled() {
+        mapsFragment.getgMap().clear();
+        list_layout.setVisibility(View.VISIBLE);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.host_list_frag,itemFragment)
+                .commit();
+        closeInfo(fab_info_list);
+    }
+
+    @Override
+    public void dataSetChange() {
+        mapsFragment.addAll();
+        mapsFragment.getgMap().animateCamera(CameraUpdateFactory.newLatLngZoom(mapsFragment.getgMap().getCameraPosition().target,12));
+        myItemRecyclerViewAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.doubleBackToExitPressedOnce = true;
+        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show();
+
+        new Handler().postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                doubleBackToExitPressedOnce=false;
+            }
+        }, 2000);
+    }
+
+    @Override
+    public void placeClicked(Place place) {
+        mapsFragment.addMarkers(place);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.host_info_frag,new InfoFragment(place),"INFO_TAG")
+                .commit();
+        fab_info_close.setVisibility(View.VISIBLE);
+        fab_info_list.setVisibility(View.VISIBLE);
+        closeClicked();
     }
 }

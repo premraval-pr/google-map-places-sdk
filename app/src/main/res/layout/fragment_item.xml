@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/roundbg_search"
+    android:layout_margin="10dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <TextView
+        android:id="@+id/tv_list_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="Title"
+        android:layout_margin="10dp"
+        android:textSize="20sp"/>
+
+    <TextView
+        android:id="@+id/tv_list_address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/tv_list_title"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="Address"
+        android:textColor="#AFA8A8"
+        android:layout_margin="10dp"
+        android:textSize="15sp"/>
+
+    <TextView
+        android:id="@+id/tv_list_phone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/tv_list_address"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="Phone"
+        android:textColor="#AFA8A8"
+        android:layout_marginStart="10dp"
+        android:textSize="15sp"/>
+
+    <RatingBar
+        android:id="@+id/rb_list_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/tv_list_phone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="5dp"
+        android:textColor="#AFA8A8"
+        android:theme="@style/RatingBarCustom"
+        style="@style/Widget.AppCompat.RatingBar.Small"
+        android:layout_marginStart="10dp"
+        android:textSize="20sp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
